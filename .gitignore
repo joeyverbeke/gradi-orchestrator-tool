@@ -1,6 +1,41 @@
+# External repos (managed separately)
 0_vllm/
 1_tts/
 2_gradi-mediate/
 3_gradi-calibrate/
 4_gradi-predict/
 5_gradi-compress/
+
+# Orchestrator logs (keep directory with .gitkeep)
+orchestrator/logs/*
+!orchestrator/logs/.gitkeep
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.python-version
+
+# Virtual environments
+.venv/
+venv/
+
+# Node/JS artifacts
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Common clutter
+*.log
+*.log.*
+*.cache
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Environment/config secrets
+.env
+.env.*
+*.local
