@@ -555,18 +555,8 @@ class ServiceOrchestrator:
             return
 
         for name, process in list(self.processes.items()):
-            if process.returncode is not None:
-                continue
-            self._set_state(name, ServiceState.STOPPING)
-            process.terminate()
-
-        await asyncio.sleep(self.stop_timeout)
-
-        for name, process in list(self.processes.items()):
-            if process.returncode is not None:
-                continue
-            print(f"[{timestamp()}] Forcing {name} to exit")
-            process.kill()
+            await self._gracefully_stop_process(name, process, "shutdown")
+            self.processes.pop(name, None)
 
     def _set_state(self, name: str, new_state: str, reason: Optional[str] = None) -> None:
         old_state = self.states.get(name)
