@@ -9,9 +9,26 @@ crashes. Each service runs in its own subprocess with stdout/stderr streamed to
 
 ```
 orchestrator/
-├── orchestrator.py     # main entry point
-├── services.toml       # declarative service manifest
-└── logs/               # created automatically, per-service logs live here
+├── orchestrator.py         # main entry point
+├── requirements.txt        # pip dependencies (pyudev, etc.)
+├── services.toml           # declarative service manifest
+└── logs/
+    ├── orchestrator/       # supervisor logs (timestamped)
+    └── <service>/          # per-service stdout/stderr logs (timestamped)
+
+## Setup
+
+From the repo root:
+
+```bash
+# one-time environment creation
+uv venv orchestrator/.venv
+source orchestrator/.venv/bin/activate
+uv pip install -r orchestrator/requirements.txt
+```
+
+Activate `orchestrator/.venv` before running the watchdog so `pyudev` and other
+dependencies are on `PYTHONPATH`.
 ```
 
 ## Running the orchestrator
@@ -25,10 +42,12 @@ python3 orchestrator/orchestrator.py
 Key behaviour:
 - Loads `services.toml`, validates dependencies, and computes a start order so
   vLLM and Kokoro boot before `gradi-mediate`.
-- Blocks per service until every required `/dev/gradi-*` device exists before
-  launching (covers the WSL USB handoff delay at boot).
-- Restarts any process that exits unexpectedly after a 5 s delay.
-- Prints state transitions to stdout and mirrors the same lines into each log file.
+- Uses `pyudev` to watch `/dev/gradi-*` symlinks; services only launch once their
+  devices exist and are restarted automatically if a device disconnects.
+- Runs HTTP/TCP health probes (when configured) before marking dependencies as
+  ready and restarts services whose probes fail repeatedly.
+- Streams stdout/stderr to per-service log files and prints concise state
+  transitions (starting, running, backoff, waiting for device, etc.).
 
 ### Useful CLI options
 
@@ -56,20 +75,28 @@ Each entry under `[services.<name>]` supports:
 | `dependencies` | Other service names that must be running first. |
 | `requires_devices` | List of `/dev/...` nodes that must exist before launch. |
 | `restart_delay_seconds` | Optional override for the 5 s default backoff. |
+| `health` | Optional probe settings (HTTP/TCP/process) used for readiness + monitoring. |
+| `device_restart_policy` | `immediate` (default) stops the service as soon as the required device disappears; `on_reconnect` waits until the device returns before restarting (useful for Gradi Compress). |
 
 Update the command lines to match your preferred CLI flags (e.g., change
 languages, lat/lon, Kokoro voice) and re-run the orchestrator.
 
 ## Viewing logs
 
-Tail a specific service log in another shell:
+- Service logs:
 
-```bash
-tail -f orchestrator/logs/gradi-mediate.log
-```
+  ```bash
+  tail -f "$(ls -t orchestrator/logs/gradi-mediate/*.log | head -n1)"
+  ```
 
-Stdout/stderr lines are timestamped and tagged with `stdout`/`stderr` to make it
-clear where messages originate.
+- Supervisor logs:
+
+  ```bash
+  tail -f "$(ls -t orchestrator/logs/orchestrator/*.log | head -n1)"
+  ```
+
+Each launch writes to a new timestamped file under its directory, and every line
+is tagged so you always know where messages originate.
 
 ## Example systemd user service
 
@@ -102,11 +129,11 @@ To launch the orchestrator automatically after login:
 The orchestrator continues waiting for `/dev/gradi-*` devices even if this
 service starts before the Windows USB bridge finishes attaching hardware.
 
-## Next steps (Tiers 2 & 3)
+## Next steps
 
-- Replace the simple `/dev` polling with `pyudev` watchers so reconnects are
-  detected immediately.
-- Add structured health checks (ports, heartbeats) and exponential backoff.
-- Cascade dependency restarts (e.g., restart `gradi-mediate` when vLLM dies).
-- Expose a control socket / dashboard for remote status queries and manual
-  start/stop commands.
+- Enrich structured logging/metrics (JSON logs, restart counters, Prometheus
+  text exporter) so remote operators get quick insight.
+- Persist a compact status file the art handlers can read (“Mediation waiting
+  for /dev/gradi-esp-mediate”) without reading full logs.
+- Add optional control surface (REST/CLI) if we later need remote start/stop
+  or log streaming without SSH access.

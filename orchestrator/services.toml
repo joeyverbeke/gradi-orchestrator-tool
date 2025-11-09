@@ -19,6 +19,12 @@ uv run vllm serve hugging-quants/Meta-Llama-3.1-8B-Instruct-GPTQ-INT4 \
 """
 dependencies = []
 requires_devices = []
+[services.vllm.health]
+type = "http"
+url = "http://127.0.0.1:8000/health"
+initial_delay_seconds = 30
+interval_seconds = 5
+failure_threshold = 3
 
 [services.kokoro]
 display_name = "Gradi Kokoro"
@@ -27,6 +33,12 @@ venv = "../.venv"
 command = "./start-gpu.sh"
 dependencies = []
 requires_devices = []
+[services.kokoro.health]
+type = "http"
+url = "http://127.0.0.1:8880/health"
+initial_delay_seconds = 8
+interval_seconds = 5
+failure_threshold = 3
 
 [services.gradi-mediate]
 display_name = "Gradi Mediation"
@@ -65,3 +77,10 @@ command = "npm start -- --port /dev/gradi-esp-compress --fullscreen"
 testing_command = "npm start -- --port /dev/gradi-esp-compress"
 dependencies = []
 requires_devices = ["/dev/gradi-esp-compress"]
+device_restart_policy = "on_reconnect"
+[services.gradi-compress.health]
+type = "tcp"
+host = "127.0.0.1"
+port = 3007
+interval_seconds = 5
+failure_threshold = 3

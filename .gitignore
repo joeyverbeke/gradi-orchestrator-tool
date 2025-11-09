@@ -20,6 +20,7 @@ __pycache__/
 # Virtual environments
 .venv/
 venv/
+orchestrator/.venv/
 
 # Node/JS artifacts
 node_modules/
@@ -30,6 +31,7 @@ yarn-error.log*
 *.log
 *.log.*
 *.cache
+.uv-cache/
 .DS_Store
 Thumbs.db
 .idea/
