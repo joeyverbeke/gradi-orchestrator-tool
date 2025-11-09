@@ -98,36 +98,66 @@ languages, lat/lon, Kokoro voice) and re-run the orchestrator.
 Each launch writes to a new timestamped file under its directory, and every line
 is tagged so you always know where messages originate.
 
-## Example systemd user service
+## WSL autostart recipe
 
-To launch the orchestrator automatically after login:
+These are the exact steps we use to boot the orchestrator automatically whenever
+WSL spins up:
 
-1. Create `~/.config/systemd/user/gradi-orchestrator.service`:
+1. **Enable systemd inside the distro**
+   - Edit `/etc/wsl.conf` with sudo and ensure it contains:
+     ```
+     [boot]
+     systemd=true
+     ```
+   - From Windows PowerShell/CMD run `wsl --shutdown` once so systemd actually
+     starts the next time the distro launches.
 
-   ```ini
-   [Unit]
-   Description=Gradi Orchestrator
-   After=default.target
+2. **Add the launcher script** (already in this repo)
+   - File: `orchestrator/run_watchdog.sh`
+     ```bash
+     #!/usr/bin/env bash
+     set -euo pipefail
+     cd /home/joey/gradi
+     source orchestrator/.venv/bin/activate
+     exec python3 orchestrator/orchestrator.py "$@"
+     ```
+   - Make sure it is executable: `chmod +x orchestrator/run_watchdog.sh`.
 
-   [Service]
-   WorkingDirectory=/home/joey/gradi
-   ExecStart=/usr/bin/python3 /home/joey/gradi/orchestrator/orchestrator.py
-   Restart=always
-   RestartSec=5
+3. **Create the user service**
+   - File: `~/.config/systemd/user/gradi-orchestrator.service`
+     ```ini
+     [Unit]
+     Description=Gradi art orchestrator
+     After=network.target
 
-   [Install]
-   WantedBy=default.target
-   ```
+     [Service]
+     WorkingDirectory=/home/joey/gradi
+     ExecStart=/home/joey/gradi/orchestrator/run_watchdog.sh
+     Restart=on-failure
+     RestartSec=5
+     Environment=PYTHONUNBUFFERED=1
 
-2. Reload and enable:
+     [Install]
+     WantedBy=default.target
+     ```
 
+4. **Enable after systemd is running**
    ```bash
    systemctl --user daemon-reload
    systemctl --user enable --now gradi-orchestrator.service
    ```
 
-The orchestrator continues waiting for `/dev/gradi-*` devices even if this
-service starts before the Windows USB bridge finishes attaching hardware.
+Logs live in `journalctl --user -u gradi-orchestrator`, and you can start/stop
+the watchdog with `systemctl --user start|stop gradi-orchestrator`. The
+`PYTHONUNBUFFERED` flag keeps stdout/stderr streaming immediately into the
+journal, while the script guarantees the correct working directory and virtual
+environment before launching the supervisor.
+
+⚠️  User-level systemd sessions inherit a minimal `PATH`, so the service
+commands in `services.toml` reference full paths (e.g.,
+`/home/joey/.local/bin/uv`) or explicitly source `~/.nvm/nvm.sh` before calling
+`npm`. Mirror that pattern whenever you add new tools so restarts behave the
+same as an interactive shell.
 
 ## Next steps
 

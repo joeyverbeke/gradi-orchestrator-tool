@@ -9,7 +9,7 @@ display_name = "Gradi vLLM"
 working_dir = "0_vllm"
 venv = ".venv"
 command = """
-uv run vllm serve hugging-quants/Meta-Llama-3.1-8B-Instruct-GPTQ-INT4 \
+/home/joey/.local/bin/uv run vllm serve hugging-quants/Meta-Llama-3.1-8B-Instruct-GPTQ-INT4 \
   --quantization gptq_marlin \
   --dtype half \
   --max-model-len 4096 \
@@ -30,7 +30,7 @@ failure_threshold = 3
 display_name = "Gradi Kokoro"
 working_dir = "1_tts/Kokoro-FastAPI"
 venv = "../.venv"
-command = "./start-gpu.sh"
+command = "export PATH=\"/home/joey/.local/bin:$PATH\" && ./start-gpu.sh"
 dependencies = []
 requires_devices = []
 [services.kokoro.health]
@@ -45,7 +45,7 @@ display_name = "Gradi Mediation"
 working_dir = "2_gradi-mediate/gradi-mediation"
 venv = ".venv"
 command = """
-uv run scripts/session_controller.py \
+/home/joey/.local/bin/uv run scripts/session_controller.py \
   --asr-engine faster_whisper \
   --fw-model-dir third_party/faster-whisper/models \
   --kokoro-voice af_bella
@@ -57,7 +57,7 @@ requires_devices = ["/dev/gradi-esp-mediate"]
 display_name = "Gradi Calibrate"
 working_dir = "3_gradi-calibrate"
 venv = ".venv"
-command = "python -m pc_app.cli --audio --language ko"
+command = "python -m pc_app.cli --audio --language kr"
 testing_command = "python -m pc_app.cli --audio --language en"
 dependencies = []
 requires_devices = ["/dev/gradi-rp-calibrate"]
@@ -73,8 +73,8 @@ requires_devices = ["/dev/gradi-esp-predict"]
 [services.gradi-compress]
 display_name = "Gradi Compress"
 working_dir = "5_gradi-compress"
-command = "npm start -- --port /dev/gradi-esp-compress --fullscreen"
-testing_command = "npm start -- --port /dev/gradi-esp-compress"
+command = "source ~/.nvm/nvm.sh && npm start -- --port /dev/gradi-esp-compress --fullscreen"
+testing_command = "source ~/.nvm/nvm.sh && npm start -- --port /dev/gradi-esp-compress"
 dependencies = []
 requires_devices = ["/dev/gradi-esp-compress"]
 device_restart_policy = "on_reconnect"
