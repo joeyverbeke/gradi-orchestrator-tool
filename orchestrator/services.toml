@@ -48,7 +48,12 @@ command = """
 /home/joey/.local/bin/uv run scripts/session_controller.py \
   --asr-engine faster_whisper \
   --fw-model-dir third_party/faster-whisper/models \
-  --kokoro-voice af_bella
+  --kokoro-voice af_bella \
+  --whisper-binary third_party/whisper.cpp/build/bin/whisper-cli \
+  --whisper-model third_party/whisper.cpp/models/ggml-small.bin \
+  --vad-aggressiveness 3 --vad-start-frames 5 --vad-stop-frames 6 \
+  --max-capture-seconds 6 \
+  --playback-gain-db 9
 """
 dependencies = ["vllm", "kokoro"]
 requires_devices = ["/dev/gradi-esp-mediate"]
