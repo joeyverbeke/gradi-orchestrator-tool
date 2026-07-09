@@ -51,8 +51,8 @@ command = """
   --kokoro-voice af_bella \
   --whisper-binary third_party/whisper.cpp/build/bin/whisper-cli \
   --whisper-model third_party/whisper.cpp/models/ggml-small.bin \
-  --vad-aggressiveness 3 --vad-start-frames 5 --vad-stop-frames 6 \
-  --max-capture-seconds 6 \
+  --vad-aggressiveness 3 --vad-start-frames 5 --vad-stop-frames 25 \
+  --vad-energy-gate --vad-onset-ratio 3.0 --vad-offset-ratio 2.0 \
   --playback-gain-db 9
 """
 dependencies = ["vllm", "kokoro"]
